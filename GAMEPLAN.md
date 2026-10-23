@@ -1,7 +1,13 @@
-# Gameplan: building our launcher on Lawnchair 16
+# Gameplan: Allmother
 
-Working notes for turning this fork of [LawnchairLauncher/lawnchair](https://github.com/LawnchairLauncher/lawnchair)
-into our own launcher. Items are ordered by priority: the ones near the top are cheap now and painful later.
+**Allmother** (a Coheed and Cambria reference) is a custom Android launcher built on this fork of
+[LawnchairLauncher/lawnchair](https://github.com/LawnchairLauncher/lawnchair). It has two goals:
+
+1. **Fix the design choices I dislike** in stock launchers and Lawnchair.
+2. **Be an ADHD aid.** The home screen is the first thing seen on every unlock, so it should cut distraction,
+   add a little friction before time-sink apps, and make time and tasks visible.
+
+Items are ordered by priority: the ones near the top are cheap now and painful later.
 
 ## Where things stand
 
@@ -35,13 +41,14 @@ Key entry points:
 
 ## Priority 1: decisions to make before writing any feature code
 
-1. **Name and identity.** Pick the app name and a unique `applicationId` (for example `com.honkbonkus.<name>`).
-   Right now the build produces `app.lawnchair`, which means:
+1. **Name and identity.** Name: **Allmother** ✅. Still needed: a unique `applicationId`, for example
+   `com.honkbonkus.allmother` or `app.allmother`. Right now the build produces `app.lawnchair`, which means:
    - it installs *over* real Lawnchair on any phone that has it, and they can't coexist;
    - it can never be published under that ID (Play Store, F-Droid).
    Changing it later wipes users' layouts and settings, so this goes first.
-2. **What makes it different?** Write 3–5 sentences on what this launcher does that Lawnchair doesn't.
-   That decides how far we drift from upstream, and therefore how expensive syncing stays.
+2. **What makes it different?** ✅ Design fixes plus ADHD support (see Priority 4). Still needed: a concrete
+   list of the design choices that bother me, so they can be split into "already a Lawnchair setting"
+   (just change the default) and "needs code".
 3. **Branch strategy.** Recommended:
    - `16-dev` stays a clean mirror of upstream (only ever fast-forwarded from `upstream/16-dev`).
    - A `main` (or `dev`) branch carries our launcher. Upstream is merged into it regularly (merge, not rebase).
@@ -92,17 +99,39 @@ These are mechanical but touch "phone home" behavior, so they must be done befor
 
 ## Priority 4: product work
 
-Pending the "what makes it different" decision (Priority 1.2). A reasonable sequence:
+### 4a. Design fixes (cheapest wins first)
+1. List every design choice that bothers me.
+2. For each, check whether Lawnchair already has a setting. If it does, Allmother just ships a different
+   **default** (in `PreferenceManager2.kt` / `lawnchair/res/values/config.xml`). That's no new code and no merge pain.
+3. Whatever's left becomes real code changes, done one at a time in Allmother's own package.
+4. Default home layout and theme: `res/xml/default_workspace_*.xml`, `lawnchair/src/app/lawnchair/theme/`.
 
-1. Pick one signature feature and build it end to end (preference → behavior → settings UI) to learn the codebase.
-2. Trim settings/features we don't want (hiding them is safer than deleting them, to keep merges clean).
-3. Default layout and theming: `res/xml/default_workspace_*.xml`, the `lawnchair/src/app/lawnchair/theme/` defaults.
-4. Distribution: GitHub Releases first (simplest), then F-Droid/IzzyOnDroid or Play if wanted.
+### 4b. ADHD features: build one end to end first
+Ideas, ordered by likely value versus effort. We pick the first one together, then build it fully
+(setting → behavior → settings screen) to learn the codebase before tackling bigger ones.
 
-## Open questions for us
+| # | Feature | Why it helps | Builds on |
+|---|---|---|---|
+| 1 | **Calm home screen**: minimal default layout, notification dots/badges off by default, an option to show only the essentials | Fewer visual hooks pulling attention on every unlock | Existing settings (`NotificationDotsPreference`, grid/dock prefs) |
+| 2 | **Distracting-apps list**: tag apps as "distracting"; they're hidden from the home screen and suggestions, and can be shown grayscale in the drawer | Out of sight, out of mind, without uninstalling | Hidden apps (`HiddenAppsPreferences.kt`), app filter, icon pipeline |
+| 3 | **Intention pause**: opening a distracting app shows a short "what are you here for?" / a few-seconds pause screen first | Turns autopilot opens into decisions | Launch interception in `LawnchairLauncher` / app-launch path |
+| 4 | **Time made visible**: big clock, "time since unlock" / "time in current app" cues, a quick-start timer | Helps with time blindness | Smartspace providers (`smartspace/`) |
+| 5 | **Focus modes / routines**: different home layouts or app sets for work, evening, etc., switched manually or on a schedule | Context-appropriate phone | Gestures, prefs; bigger feature |
+| 6 | **Today's task(s) on home**: one to three tasks pinned to the home screen | Keeps the priority in view | Smartspace or a custom widget |
+| 7 | **Usage insight**: daily screen time for distracting apps, soft limits | Awareness, gentle accountability | `UsageStatsManager` (already used in `predictions/UsageStatsRanker.kt`) |
 
-- [ ] App name
+Design principle for all of these: **gentle friction, never punishment.** Easy to override, nothing that makes
+the phone feel broken, and few settings (each extra setting is itself a distraction).
+
+### 4c. Distribution
+GitHub Releases first (simplest, good for personal use), then F-Droid/IzzyOnDroid or Play if wanted.
+
+## Open questions
+
+- [x] App name: **Allmother**
+- [x] The core idea: design fixes + ADHD support
 - [ ] Package ID (`applicationId`)
-- [ ] The core idea: what's different from Lawnchair?
-- [ ] Distribution channels
+- [ ] List of the design choices that bother me
+- [ ] Which ADHD feature to build first
+- [ ] Personal use only, or published for others too?
 - [ ] Keep the in-app updater (pointed at our releases) or remove it?
