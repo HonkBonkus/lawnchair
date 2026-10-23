@@ -86,7 +86,7 @@ class AboutViewModel(
 
     private suspend fun fetchActiveContributors(): Set<String> {
         return runCatching {
-            nightlyBuildsRepository.api.getRepositoryEvents("LawnchairLauncher", "lawnchair")
+            nightlyBuildsRepository.api.getRepositoryEvents(REPO_OWNER, REPO_NAME)
                 .map { it.actor.login.lowercase() }
                 .toSet()
         }.getOrDefault(emptySet())
@@ -198,7 +198,7 @@ class AboutViewModel(
             Link(
                 iconResId = R.drawable.ic_github,
                 labelResId = R.string.github,
-                url = "https://github.com/LawnchairLauncher/lawnchair",
+                url = REPO_URL,
             ),
             Link(
                 iconResId = R.drawable.ic_translate,

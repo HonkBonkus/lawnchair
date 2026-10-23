@@ -13,6 +13,11 @@ import retrofit2.http.Query
 import retrofit2.http.Streaming
 import retrofit2.http.Url
 
+// Allmother: the repository the updater, changelog and About links point at
+const val REPO_OWNER = "HonkBonkus"
+const val REPO_NAME = "lawnchair"
+const val REPO_URL = "https://github.com/$REPO_OWNER/$REPO_NAME"
+
 /**
  * Interface for interacting with the GitHub API.
  *
@@ -20,7 +25,7 @@ import retrofit2.http.Url
  * It uses Retrofit for making HTTP requests and kotlinx.serialization for JSON parsing.
  */
 interface GitHubService {
-    @GET("repos/LawnchairLauncher/lawnchair/releases")
+    @GET("repos/$REPO_OWNER/$REPO_NAME/releases")
     suspend fun getReleases(): List<GitHubRelease>
 
     @GET("repos/{owner}/{repo}/events")

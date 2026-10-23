@@ -4,19 +4,21 @@
 [LawnchairLauncher/lawnchair](https://github.com/LawnchairLauncher/lawnchair). It has two goals:
 
 1. **Fix the design choices I dislike** in stock launchers and Lawnchair.
-2. **Be an ADHD aid.** The home screen is the first thing seen on every unlock, so it should cut distraction,
-   add a little friction before time-sink apps, and make time and tasks visible.
+2. **Work with my ADHD, my way.** The home screen is the first thing seen on every unlock. Allmother deliberately
+   avoids the traditional ADHD-management playbook; features come from my own requests, not a checklist.
 
 Items are ordered by priority: the ones near the top are cheap now and painful later.
 
 ## Where things stand
 
-- Fork: `HonkBonkus/lawnchair`, branch `16-dev` (Lawnchair 16, based on Android 16 Launcher3).
-- Upstream was 23 commits ahead of the fork. Those commits are now merged (fast-forward, no conflicts) into
-  `claude/zealous-thompson-il4z7t`. The fork's own `16-dev` is still behind until that branch is merged
-  or GitHub's **Sync fork** button is used.
-- The fork had no `upstream` remote configured locally. For future syncs:
-  `git remote add upstream https://github.com/LawnchairLauncher/lawnchair.git`
+- Fork: `HonkBonkus/lawnchair`, based on Lawnchair 16 (Android 16 Launcher3).
+- Branches:
+  - `16-dev`: clean mirror of upstream Lawnchair. Only ever fast-forwarded from `upstream/16-dev`, never committed to.
+  - `main`: Allmother. Upstream is merged into it regularly (merge, not rebase).
+  - Feature branches come off `main`.
+- Upstream sync (on a local clone):
+  `git remote add upstream https://github.com/LawnchairLauncher/lawnchair.git` (once), then
+  `git fetch upstream && git push origin upstream/16-dev:16-dev && git checkout main && git merge upstream/16-dev`
 - Submodule `platform_frameworks_libs_systemui` still points at Lawnchair's repo. That's fine unless we need
   to change it.
 
@@ -41,18 +43,13 @@ Key entry points:
 
 ## Priority 1: decisions to make before writing any feature code
 
-1. **Name and identity.** Name: **Allmother** ✅. Still needed: a unique `applicationId`, for example
-   `com.honkbonkus.allmother` or `app.allmother`. Right now the build produces `app.lawnchair`, which means:
-   - it installs *over* real Lawnchair on any phone that has it, and they can't coexist;
-   - it can never be published under that ID (Play Store, F-Droid).
-   Changing it later wipes users' layouts and settings, so this goes first.
+1. **Name and identity.** ✅ Name **Allmother**, `applicationId` **`com.honkbonkus.allmother`**
+   (`.nightly` / `.play` for the other channels, plus `.debug` for debug builds). Never change it again:
+   that would wipe users' layouts and settings.
 2. **What makes it different?** ✅ Design fixes plus ADHD support (see Priority 4). Still needed: a concrete
    list of the design choices that bother me, so they can be split into "already a Lawnchair setting"
    (just change the default) and "needs code".
-3. **Branch strategy.** Recommended:
-   - `16-dev` stays a clean mirror of upstream (only ever fast-forwarded from `upstream/16-dev`).
-   - A `main` (or `dev`) branch carries our launcher. Upstream is merged into it regularly (merge, not rebase).
-   - Feature branches come off `main`.
+3. **Branch strategy.** ✅ See "Where things stand".
 4. **Distribution target.** Sideload/GitHub only, F-Droid, or Play Store? Play forces stricter rules
    (Lawnchair already has a `play` flavor that disables things). This decides which flavors we keep.
 
@@ -60,24 +57,31 @@ Key entry points:
 
 These are mechanical but touch "phone home" behavior, so they must be done before handing a build to anyone.
 
-1. **applicationId and app name.** In `build.gradle` (`productFlavors` and `derived_app_name` resValues),
-   plus the APK output filename. Keep the Java/Kotlin package `app.lawnchair.*` for now. Renaming ~500 files
-   would make every upstream merge conflict. Only the `applicationId` needs to change.
-2. **Disable or retarget the in-app updater.** `ui/preferences/about/GithubService.kt` and
-   `NightlyBuildsRepository.kt` fetch releases and commits from `LawnchairLauncher/lawnchair`. A nightly build
-   of our fork would offer to "update" itself to upstream Lawnchair. Point it at our repo, or turn it off.
-3. **Announcements feed.** `ui/preferences/data/liveinfo/LiveInformationRequest.kt` pulls announcements from
-   `https://lawnchair.app/`. Disable it or host our own.
-4. **About screen, links and bug reports.** `ui/preferences/about/` (team list, Discord/Telegram, commit links),
-   `bugreport/`, and strings that point to Lawnchair's community.
-5. **Icons and visual identity.** Launcher icons are in `lawnchair/res/mipmap-*` and `nightly/res/mipmap-*`.
-6. **Licensing.** The project is Apache 2.0, so we can ship it under our own name, but we must keep
+Every Allmother change to upstream files is marked with an `Allmother:` comment, so `git grep Allmother:`
+lists them all during merges.
+
+1. ✅ **applicationId and app name.** `build.gradle`: flavor IDs, `derived_app_name`, APK filename.
+   The Java/Kotlin package stays `app.lawnchair.*`: renaming ~500 files would make every upstream merge conflict.
+2. ✅ **In-app updater retargeted.** `ui/preferences/about/GithubService.kt` now has `REPO_OWNER` / `REPO_NAME` /
+   `REPO_URL` constants used by the updater, changelog, and About links. Before this, a nightly build would have
+   offered to "update" itself into upstream Lawnchair. It only appears in `nightly` builds, and it looks for a
+   release tagged `nightly` on our repo, which doesn't exist yet. So for now it finds nothing.
+3. ✅ **Announcements feed off by default** (`config_default_live_information_enabled` in
+   `lawnchair/res/values/config.xml`), so nothing is fetched from lawnchair.app.
+4. **Settings text still says "Lawnchair"** in ~20 English strings (onboarding, accessibility explanations, etc.),
+   translated into 160 languages. Changing them creates merge conflicts on every translation update, so this is
+   deferred. Best approach later: override just the English strings from a separate Allmother resource folder.
+5. **About screen:** the GitHub/commit links now point to our repo. The Lawnchair team credits and community
+   links are kept as attribution for now; to be replaced with an Allmother "built on Lawnchair" section later.
+6. **Icons and visual identity.** Launcher icons are in `lawnchair/res/mipmap-*` and `nightly/res/mipmap-*`.
+7. **Licensing.** The project is Apache 2.0, so we can ship it under our own name, but we must keep
    `LICENSE.txt` and existing copyright headers, and add our own notice. Don't use the Lawnchair name or logo
    for our product.
-7. **CI.** `.github/workflows/` are mostly gated on `github.repository_owner == 'LawnchairLauncher'`, so they're
-   harmless on the fork, but `ci.yml` will still build on every push to `*-dev`. Decide which workflows to keep;
-   remove the Crowdin, Telegram and stale-issue ones. Add our own signing secrets when we want signed releases.
-8. **Release signing.** Generate *our own* keystore (`keystore.properties` + `.jks`, never committed).
+8. ✅ **CI.** `ci.yml` now just builds a debug APK and runs the style check on pushes to `main` / `*-dev` and on PRs.
+   Removed: Crowdin, Telegram notifications, nightly publishing, issue auto-closers, Lawnchair's release
+   workflows, funding links and issue templates. Upstream occasionally edits those files; on merge, keep them
+   deleted (`git rm` them again). A release workflow comes back once distribution is decided.
+9. **Release signing.** Generate *our own* keystore (`keystore.properties` + `.jks`, never committed).
    Without it, release builds fall back to the debug key.
 
 ## Priority 3: development workflow
@@ -107,7 +111,8 @@ These are mechanical but touch "phone home" behavior, so they must be done befor
 4. Default home layout and theme: `res/xml/default_workspace_*.xml`, `lawnchair/src/app/lawnchair/theme/`.
 
 ### 4b. ADHD features: build one end to end first
-Ideas, ordered by likely value versus effort. We pick the first one together, then build it fully
+**My own feature requests come first** (being finalized; they'll be added here). The table below is only a pool of
+early brainstorm ideas. Some will be used and many won't. We pick the first feature together, then build it fully
 (setting → behavior → settings screen) to learn the codebase before tackling bigger ones.
 
 | # | Feature | Why it helps | Builds on |
@@ -130,7 +135,7 @@ GitHub Releases first (simplest, good for personal use), then F-Droid/IzzyOnDroi
 
 - [x] App name: **Allmother**
 - [x] The core idea: design fixes + ADHD support
-- [ ] Package ID (`applicationId`)
+- [x] Package ID: `com.honkbonkus.allmother`
 - [ ] List of the design choices that bother me
 - [ ] Which ADHD feature to build first
 - [ ] Personal use only, or published for others too?
